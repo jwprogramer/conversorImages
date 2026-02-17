@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Conversor HEIC → PNG/JPG</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/heic2any/dist/heic2any.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
+
+<div class="bg-white shadow-xl rounded-2xl p-8 w-full max-w-2xl">
+
+  <h1 class="text-2xl font-bold mb-4 text-center">HEIC → PNG/JPG</h1>
+
+  <input 
+    type="file" 
+    id="fileInput" 
+    multiple 
+    accept=".heic,image/heic"
+    class="mb-4 w-full"
+  />
+
+  <select id="formatSelect" class="mb-4 w-full p-2 border rounded">
+    <option value="image/png">Converter para PNG</option>
+    <option value="image/jpeg">Converter para JPG</option>
+  </select>
+
+  <button 
+    onclick="convertFiles()" 
+    id="convertBtn"
+    class="bg-blue-600 text-white px-4 py-2 rounded w-full hover:bg-blue-700 transition"
+  >
+    Converter
+  </button>
+
+  <!-- Barra de Progresso -->
+  <div class="mt-6">
+    <div class="flex justify-between text-sm mb-1">
+      <span>Progresso</span>
+      <span id="progressText">0%</span>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-4">
+      <div 
+        id="progressBar"
+        class="bg-blue-600 h-4 rounded-full transition-all duration-300"
+        style="width: 0%">
+      </div>
+    </div>
+  </div>
+
+  <div id="status" class="mt-4 text-sm text-gray-600"></div>
+
+  <div id="downloadSection" class="mt-6 hidden">
+    <button 
+      onclick="downloadZip()" 
+      class="bg-green-600 text-white px-4 py-2 rounded w-full hover:bg-green-700 transition"
+    >
+      Baixar Todos (ZIP)
+    </button>
+  </div>
+
+</div>
+
+<script>
+let convertedFiles = [];
+
+async function convertFiles() {
+  const input = document.getElementById("fileInput");
+  const format = document.getElementById("formatSelect").value;
+  const status = document.getElementById("status");
+  const downloadSection = document.getElementById("downloadSection");
+  const progressBar = document.getElementById("progressBar");
+  const progressText = document.getElementById("progressText");
+  const convertBtn = document.getElementById("convertBtn");
+
+  if (!input.files.length) {
+    alert("Selecione pelo menos um arquivo HEIC.");
+    return;
+  }
+
+  convertBtn.disabled = true;
+  convertBtn.classList.add("opacity-50", "cursor-not-allowed");
+
+  convertedFiles = [];
+  status.innerHTML = "";
+  downloadSection.classList.add("hidden");
+  progressBar.style.width = "0%";
+  progressText.innerText = "0%";
+
+  const totalFiles = input.files.length;
+  let completed = 0;
+
+  for (let file of input.files) {
+    try {
+      status.innerHTML += `<div>Convertendo ${file.name}...</div>`;
+
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: format,
+        quality: 0.9
+      });
+
+      const newName = file.name.replace(/\.heic$/i, "") + 
+        (format === "image/png" ? ".png" : ".jpg");
+
+      convertedFiles.push({ blob: convertedBlob, name: newName });
+
+      completed++;
+
+      const percent = Math.round((completed / totalFiles) * 100);
+      progressBar.style.width = percent + "%";
+      progressText.innerText = percent + "%";
+
+      status.innerHTML += `<div class="text-green-600">✔ ${file.name} convertido</div>`;
+
+    } catch (err) {
+      status.innerHTML += `<div class="text-red-600">❌ Erro ao converter ${file.name}</div>`;
+    }
+  }
+
+  if (convertedFiles.length > 0) {
+    downloadSection.classList.remove("hidden");
+  }
+
+  convertBtn.disabled = false;
+  convertBtn.classList.remove("opacity-50", "cursor-not-allowed");
+}
+
+function downloadZip() {
+  const zip = new JSZip();
+
+  convertedFiles.forEach(file => {
+    zip.file(file.name, file.blob);
+  });
+
+  zip.generateAsync({ type: "blob" })
+    .then(content => {
+      saveAs(content, "imagens_convertidas.zip");
+    });
+}
+</script>
+
+</body>
+</html>
