@@ -32,4 +32,4 @@ Depois de ativar o GitHub Pages:
 1. Clone o repositório:
 
 ```bash
-git clone 
+git clone https://github.com/jwprogramer/conversorImages.git
